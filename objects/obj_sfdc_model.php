@@ -1,4 +1,5 @@
 <?php
+include_once('/home/wayne/Documents/Code/PHP/php-salesforce-adapter/includes/adapter-config.inc.php');
 define("SOAP_CLIENT_BASEDIR", $soapclient_path );
 require_once (SOAP_CLIENT_BASEDIR.'/SforcePartnerClient.php');
 
@@ -19,12 +20,14 @@ abstract class SalesforceModel {
         // This is the name of the class that called me
         $class = get_class($this);
 
-        // And this should be what we are filtering by
-        $keys = range(2, sizeOf($list) - 1);
-        foreach($keys as $k){
+        if (sizeOf($list) > 1) {
+          // And this should be what we are filtering by
+          $keys = range(2, sizeOf($list) - 1);
+          foreach($keys as $k){
             $values[] = $list[$k];
+          }
+          $property = implode("", $values);
         }
-        $property = implode("", $values);
 
         switch ($prefix) {
             case "find": return $this->find($class, $property, $params); break;
@@ -35,10 +38,11 @@ abstract class SalesforceModel {
     
     function find($class, $property, $params) {
         try {
-
             // This get's the list of properties defined on the calling class, and makes a comma seperated list of them
             // which we will use to query salesforce for the right properties.
-            $fields = array_keys(get_class_vars($class));
+            $vars = get_class_vars($class);
+            unset($vars['metadata']);
+            $fields = array_keys($vars);
             $fields_string = implode(",", $fields);
 
             if (isset($this->metadata['tableName'])) {
@@ -48,19 +52,28 @@ abstract class SalesforceModel {
                 $table = str_replace('SFDC_', '', $class);
             }
 
+
             if ($property) {
               $query = "SELECT Id, " . $fields_string . " from " . $table. " where " . $property . " = '" . $params[0] . "'";
             } else {
               $conditions = "";
-              $parm_array = $params['conditions'];
+              $index = array_search('conditions', $params);
+              $parm_array = $params[$index]['conditions'];
        
               if(sizeOf($parm_array) > 1) {
-                $conditions .= "WHERE " . array_pop($parm_array);
-                foreach($parm_array as $p){
-                    $conditions .= " AND " . $p;
+                //Ugly ugly things happen here.  There has got to be a better way to do this, but my brain is incapable of 
+                //hashing it out right now.  
+                $keys = array_keys($parm_array);
+                $key = array_pop($keys);
+                $first = array_pop($parm_array);
+                $conditions .= "WHERE " . $key . " = '" . $first . "'";
+                foreach($parm_array as $key=>$value){
+                    $conditions .= " AND " . $key . " = '" . $value . "'";
                 }
               } elseif(sizeOf($parm_array) == 1) {
-                $conditions .= "WHERE " . array_pop($parm_array);
+                $key = array_keys($parm_array);
+                $key = $key[0];
+                $conditions .= "WHERE " . $key . " = '" . array_pop($parm_array) . "'";
               }
 
               $query = "SELECT Id, " . $fields_string . " from " . $table . " " . $conditions;
@@ -124,6 +137,7 @@ abstract class SalesforceModel {
     }
 
     function connect() {
+        global $salesforce_user, $salesforce_password;
         $mySforceConnection = new SforcePartnerClient();
         $mySoapClient = $mySforceConnection->createConnection(SOAP_CLIENT_BASEDIR.'/partner.wsdl.xml');
         $mylogin = $mySforceConnection->login($salesforce_user, $salesforce_password);
@@ -138,6 +152,7 @@ abstract class SalesforceModel {
             echo "There was an error";
         }
     }
+
 }
 
 ?>
