@@ -1,0 +1,5 @@
+This is my super awesome library that makes interacting with Salesforce in PHP a little less painful.
+
+It needs work.  There's lots of code duplication and some super weirdness, but I am working those things out slowly.
+
+Pretty soon I will probably even put some instructions in this README... probably.
