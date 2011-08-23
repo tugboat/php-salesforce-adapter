@@ -1,5 +1,5 @@
 <?php
-include_once('/home/wayne/Documents/Code/PHP/php-salesforce-adapter/includes/adapter-config.inc.php');
+include_once('../includes/adapter-config.inc.php');
 define("SOAP_CLIENT_BASEDIR", $soapclient_path );
 require_once (SOAP_CLIENT_BASEDIR.'/SforcePartnerClient.php');
 
